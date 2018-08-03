@@ -38,7 +38,8 @@ class ParallelCalculator(stringParser: MathExpressionParser) (implicit val actor
     }
   }
 
-  private def leafSource(function: (Number, Number) => Number, leftNumber: Source[Number, NotUsed], rightNumber: Source[Number, NotUsed]): Source[Number, NotUsed] = {
+  private def leafSource(function: (Number, Number) => Number, leftNumber: Source[Number, NotUsed], rightNumber: Source[Number, NotUsed]):
+  Source[Number, NotUsed] = {
     Source.fromGraph(GraphDSL.create() { implicit builder =>
       import GraphDSL.Implicits._
       val zip = builder.add(ZipWith[Number, Number, Number](function))

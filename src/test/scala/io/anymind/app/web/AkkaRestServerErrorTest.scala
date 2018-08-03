@@ -25,7 +25,7 @@ class AkkaRestServerErrorTest extends TestAppSpec
   private val calculator = stub[ParallelCalculator]
 
   private val server: AkkaRestServer = new AkkaRestServer(
-    host = RestServerHost("localhost").get,
+    host = RestServerHost("127.0.0.1").get,
     port = RestServerPort(8080).get,
     nonBlockingExecContext = NonBlockingExecContext(actorSystem.dispatcher),
     calculator

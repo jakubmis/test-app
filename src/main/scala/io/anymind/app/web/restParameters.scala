@@ -3,9 +3,14 @@ package io.anymind.app.web
 import scala.util.Try
 
 object RestServerHost {
+
+  val ipRegex = "(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}"
+
   def apply(host: String): Try[RestServerHost] = {
-    //TODO valiate the host
-    Try(new RestServerHost(host))
+    Try {
+      require(host.matches(ipRegex))
+      new RestServerHost(host)
+    }
   }
 }
 

@@ -24,7 +24,7 @@ class AkkaRestServerTest extends TestAppSpec
   lazy val actorSystem: ActorSystem = ActorSystem("test")
 
   private val server: AkkaRestServer = new AkkaRestServer(
-    host = RestServerHost("localhost").get,
+    host = RestServerHost("127.0.0.1").get,
     port = RestServerPort(8080).get,
     nonBlockingExecContext = NonBlockingExecContext(actorSystem.dispatcher),
     new ParallelCalculator(new MathExpressionParser())

@@ -1,5 +1,6 @@
 package io.anymind.app.web
 
+import akka.Done
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.StatusCodes.{BadRequest, InternalServerError, OK}
@@ -49,10 +50,13 @@ class AkkaRestServer(host: RestServerHost,
       post {
         entity(as[CalculateCommand]) { command =>
           parallelCalculator.evaluateExpression(command.expression) match {
-            case Left(error) => logger.info(s"Parsing error ${error}"); complete((BadRequest, RestError("Expression is unparsable")))
+            case Left(error) => logger.info(s"Parsing error ${error}");
+              complete((BadRequest, RestError("Expression is unparsable")))
             case Right(future) => onComplete(future) {
-              case Success(result) => logger.info(s"Returning result ${result.value}"); if (result.value.isInfinite) complete((OK, Infinity())) else complete((OK, Result(result.value)))
-              case Failure(error) => logger.info(s"Internal server error ${error}"); complete((InternalServerError, RestError(error.getMessage)))
+              case Success(result) => logger.info(s"Returning result ${result.value}");
+                if (result.value.isInfinite) complete((OK, Infinity())) else complete((OK, Result(result.value)))
+              case Failure(error) => logger.info(s"Internal server error ${error}");
+                complete((InternalServerError, RestError(error.getMessage)))
             }
           }
         }
@@ -70,7 +74,7 @@ class AkkaRestServer(host: RestServerHost,
 
   def started: Future[Unit] = bindingFuture.map(_ => ())
 
-  def stop(): Future[Unit] = {
+  def stop(): Future[Done] = {
     logger.info("Stopping Akka HTTP server")
     bindingFuture.flatMap(_.unbind())
   }
