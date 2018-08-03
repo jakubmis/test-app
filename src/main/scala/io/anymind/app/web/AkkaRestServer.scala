@@ -10,7 +10,7 @@ import de.heikoseeberger.akkahttpcirce.ErrorAccumulatingCirceSupport
 import io.anymind.app.NonBlockingExecContext
 import io.anymind.app.calculator.ParallelCalculator
 import io.anymind.app.web.command.CalculateCommand
-import io.anymind.app.web.dto.{RestError, Result}
+import io.anymind.app.web.dto.{Infinity, RestError, Result}
 import io.anymind.app.web.json.JsonSerializers
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -51,7 +51,7 @@ class AkkaRestServer(host: RestServerHost,
           parallelCalculator.evaluateExpression(command.expression) match {
             case Left(error) => logger.info(s"Parsing error ${error}"); complete((BadRequest, RestError("Expression is unparsable")))
             case Right(future) => onComplete(future) {
-              case Success(result) => logger.info(s"Returning result ${result.value}"); complete((OK, Result(result.value)))
+              case Success(result) => logger.info(s"Returning result ${result.value}"); if (result.value.isInfinite) complete((OK, Infinity())) else complete((OK, Result(result.value)))
               case Failure(error) => logger.info(s"Internal server error ${error}"); complete((InternalServerError, RestError(error.getMessage)))
             }
           }

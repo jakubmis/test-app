@@ -49,6 +49,18 @@ class AkkaRestServerTest extends TestAppSpec
       }
     }
 
+    scenario("Endpoint /evaulate is called with corrupted equation") {
+      Given("an instance of CalculateCommand json")
+      val json: Json = Json.obj("expression" -> Json.fromString("5+10/0"))
+
+      When("http request /evaluate is made with corrupted equation")
+      Post("/evaluate", HttpEntity(`application/json`, json.toString())) ~> routes ~> check {
+        Then("status should be OK")
+        status shouldBe OK
+        responseAs[Json] shouldBe Json.obj("result" -> Json.fromString("Infinity"))
+      }
+    }
+
     scenario("Endpoint /evaulate is called with malformed content") {
       Given("an instance of CalculateCommand json")
       val incorrectJson: Json = Json.obj(
