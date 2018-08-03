@@ -1,6 +1,8 @@
 package io.anymind.app.web
 
+import akka.stream.ActorMaterializer
 import com.typesafe.scalalogging.StrictLogging
+import io.anymind.app.calculator.{MathExpressionParser, ParallelCalculator}
 import io.anymind.app.{ConfigModule, ConfigurationException}
 
 import scala.util.control.NonFatal
@@ -30,8 +32,8 @@ trait RestModule extends StrictLogging {
   lazy val restServer: AkkaRestServer = new AkkaRestServer(
     restServerHost,
     restServerPort,
-    actorSystem,
-    nonBlockingExecContext
+    nonBlockingExecContext,
+    new ParallelCalculator(new MathExpressionParser())(actorSystem, ActorMaterializer())
   )
   restServer.started
 

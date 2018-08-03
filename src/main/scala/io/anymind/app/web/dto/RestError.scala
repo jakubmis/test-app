@@ -1,3 +1,3 @@
 package io.anymind.app.web.dto
 
-case class RestError(result: String)
+case class RestError(error: String)

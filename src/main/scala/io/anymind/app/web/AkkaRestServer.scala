@@ -1,20 +1,16 @@
 package io.anymind.app.web
 
-import java.util.concurrent.TimeUnit
-
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.StatusCodes.{BadRequest, InternalServerError, NoContent}
+import akka.http.scaladsl.model.StatusCodes.{BadRequest, InternalServerError, OK}
 import akka.http.scaladsl.server.{Directives, ExceptionHandler, MalformedRequestContentRejection, RejectionHandler}
-import akka.pattern.ask
 import akka.stream.ActorMaterializer
-import akka.util.Timeout
-import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
 import com.typesafe.scalalogging.StrictLogging
 import de.heikoseeberger.akkahttpcirce.ErrorAccumulatingCirceSupport
 import io.anymind.app.NonBlockingExecContext
+import io.anymind.app.calculator.ParallelCalculator
 import io.anymind.app.web.command.CalculateCommand
-import io.anymind.app.web.dto.RestError
+import io.anymind.app.web.dto.{RestError, Result}
 import io.anymind.app.web.json.JsonSerializers
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -22,23 +18,20 @@ import scala.util.{Failure, Success}
 
 class AkkaRestServer(host: RestServerHost,
                      port: RestServerPort,
-                     actorSystem: ActorSystem,
-                     nonBlockingExecContext: NonBlockingExecContext)
+                     nonBlockingExecContext: NonBlockingExecContext,
+                     parallelCalculator: ParallelCalculator)
+                    (implicit val actorSystem: ActorSystem, implicit val materializer: ActorMaterializer)
   extends Directives
     with ErrorAccumulatingCirceSupport
     with StrictLogging
     with JsonSerializers {
 
-  implicit private val as: ActorSystem = actorSystem
   implicit private val context: ExecutionContext = nonBlockingExecContext.ec
-  implicit private val materializer: ActorMaterializer = ActorMaterializer()
-
-  private val settings = CorsSettings.defaultSettings.copy(allowGenericHttpRequests = false)
 
   implicit def rejectionHandler: RejectionHandler =
     RejectionHandler.newBuilder()
       .handle { case MalformedRequestContentRejection(msg, _) =>
-        complete((BadRequest, RestError(msg)))
+        complete((BadRequest, RestError("Malformed content")))
       }
       .result()
 
@@ -51,16 +44,16 @@ class AkkaRestServer(host: RestServerHost,
         }
     }
 
-  implicit val timeout = Timeout(30L, TimeUnit.SECONDS)
-
   lazy val routes = {
     path("evaluate") {
-      //      cors(settings) {
       post {
         entity(as[CalculateCommand]) { command =>
-          complete {
-            logger.info("wchodze")
-
+          parallelCalculator.evaluateExpression(command.expression) match {
+            case Left(error) => logger.info(s"Parsing error ${error}"); complete((BadRequest, RestError("Expression is unparsable")))
+            case Right(future) => onComplete(future) {
+              case Success(result) => logger.info(s"Returning result ${result.value}"); complete((OK, Result(result.value)))
+              case Failure(error) => logger.info(s"Internal server error ${error}"); complete((InternalServerError, RestError(error.getMessage)))
+            }
           }
         }
       }

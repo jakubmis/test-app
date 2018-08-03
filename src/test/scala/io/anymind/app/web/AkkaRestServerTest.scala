@@ -1,12 +1,14 @@
 package io.anymind.app.web
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.model.ContentTypes.`application/json`
+import akka.http.scaladsl.model.ContentTypes._
 import akka.http.scaladsl.model.HttpEntity
-import akka.http.scaladsl.model.StatusCodes.OK
+import akka.http.scaladsl.model.StatusCodes.{BadRequest, OK}
 import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.server.Route.seal
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import de.heikoseeberger.akkahttpcirce.ErrorAccumulatingCirceSupport
+import io.anymind.app.calculator.{MathExpressionParser, ParallelCalculator}
 import io.anymind.app.{NonBlockingExecContext, TestAppSpec}
 import io.circe.Json
 import org.scalatest.Inside
@@ -24,8 +26,8 @@ class AkkaRestServerTest extends TestAppSpec
   private val server: AkkaRestServer = new AkkaRestServer(
     host = RestServerHost("localhost").get,
     port = RestServerPort(8080).get,
-    actorSystem = actorSystem,
     nonBlockingExecContext = NonBlockingExecContext(actorSystem.dispatcher),
+    new ParallelCalculator(new MathExpressionParser())
   )
   val routes: Route = server.routes
   implicit val exceptionHandler = server.exceptionHandler
@@ -37,12 +39,39 @@ class AkkaRestServerTest extends TestAppSpec
     scenario("Endpoint /evaulate is called with correct json") {
 
       Given("an instance of CalculateCommand json")
-      val json: Json = Json.obj("expression" -> Json.fromString("5+10/3"))
+      val json: Json = Json.obj("expression" -> Json.fromString("5+10/5"))
 
       When("http request /evaluate is made with correct json")
       Post("/evaluate", HttpEntity(`application/json`, json.toString())) ~> routes ~> check {
         Then("expression should be calculated and status should be OK")
-        status shouldEqual OK
+        status shouldBe OK
+        responseAs[Json] shouldBe Json.obj("result" -> Json.fromDouble(7.0).get)
+      }
+    }
+
+    scenario("Endpoint /evaulate is called with malformed content") {
+      Given("an instance of CalculateCommand json")
+      val incorrectJson: Json = Json.obj(
+        "id" -> Json.fromString("39a97848-c0e0-4850-8c35-4ec5a7969cd4"))
+
+      When("http request /evaluate is made with malformed content")
+      Post("/evaluate", HttpEntity(`application/json`, incorrectJson.toString())) ~> seal(routes) ~> check {
+        Then("status should be BadRequest and error message should be shown")
+        status shouldBe BadRequest
+        responseAs[Json] shouldBe Json.obj("error" -> Json.fromString("Malformed content"))
+      }
+    }
+
+    scenario("Endpoint /evaulate is called with incorrect expression") {
+
+      Given("an instance of CalculateCommand json")
+      val json: Json = Json.obj("expression" -> Json.fromString("abc"))
+
+      When("http request /evaluate is made with incorrect expression")
+      Post("/evaluate", HttpEntity(`application/json`, json.toString())) ~> routes ~> check {
+        Then("status should be BadRequest and error message should be shown")
+        status shouldBe BadRequest
+        responseAs[Json] shouldBe Json.obj("error" -> Json.fromString("Expression is unparsable"))
       }
     }
   }

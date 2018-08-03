@@ -3,7 +3,7 @@ package io.anymind.app.calculator
 import scala.util.parsing.combinator.JavaTokenParsers
 
 
-class StringParser extends JavaTokenParsers {
+class MathExpressionParser extends JavaTokenParsers {
 
   def number: Parser[Operation] = floatingPointNumber ^^ { number => Number(number.toDouble) }
 
@@ -23,6 +23,9 @@ class StringParser extends JavaTokenParsers {
     }
   }
 
-  def parseExpression(expression: String) = parseAll(expressionParser, expression)
+  def parseExpression(expression: String) = parseAll(expressionParser, expression) match {
+    case Success(result, _) => Right(result)
+    case Failure(error, _) => Left(error)
+  }
 
 }

@@ -1,6 +1,7 @@
 package io.anymind.app
 
 import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import com.typesafe.config.{Config, ConfigFactory}
 
 trait ConfigModule {
@@ -10,7 +11,8 @@ trait ConfigModule {
     ConfigFactory.load(configFileName)
   }
 
-  lazy val actorSystem: ActorSystem = ActorSystem(config.getString("actor-system-name"), config)
+  implicit lazy val actorSystem: ActorSystem = ActorSystem(config.getString("actor-system-name"), config)
+  implicit lazy val materializer: ActorMaterializer = ActorMaterializer()
   lazy val nonBlockingExecContext: NonBlockingExecContext = NonBlockingExecContext(actorSystem.dispatcher)
 
 }
