@@ -4,7 +4,7 @@ import akka.Done
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.StatusCodes.{BadRequest, InternalServerError, OK}
-import akka.http.scaladsl.server.{Directives, ExceptionHandler, MalformedRequestContentRejection, RejectionHandler}
+import akka.http.scaladsl.server._
 import akka.stream.ActorMaterializer
 import com.typesafe.scalalogging.StrictLogging
 import de.heikoseeberger.akkahttpcirce.ErrorAccumulatingCirceSupport
@@ -31,7 +31,7 @@ class AkkaRestServer(host: RestServerHost,
 
   implicit def rejectionHandler: RejectionHandler =
     RejectionHandler.newBuilder()
-      .handle { case MalformedRequestContentRejection(msg, _) =>
+      .handle { case MalformedRequestContentRejection(_, _) =>
         complete((BadRequest, RestError("Malformed content")))
       }
       .result()
@@ -45,17 +45,17 @@ class AkkaRestServer(host: RestServerHost,
         }
     }
 
-  lazy val routes = {
+  lazy val routes: Route = {
     path("evaluate") {
       post {
         entity(as[CalculateCommand]) { command =>
           parallelCalculator.evaluateExpression(command.expression) match {
-            case Left(error) => logger.info(s"Parsing error ${error}");
+            case Left(error) => logger.info(s"Parsing error $error")
               complete((BadRequest, RestError("Expression is unparsable")))
             case Right(future) => onComplete(future) {
-              case Success(result) => logger.info(s"Returning result ${result.value}");
-                if (result.value.isInfinite) complete((OK, Infinity())) else complete((OK, Result(result.value)))
-              case Failure(error) => logger.info(s"Internal server error ${error}");
+              case Success(result) => logger.info(s"Returning result ${result.value.toInt}")
+                if (result.value.isInfinite) complete((OK, Infinity())) else complete((OK, Result(result.value.toInt)))
+              case Failure(error) => logger.info(s"Internal server error $error")
                 complete((InternalServerError, RestError(error.getMessage)))
             }
           }

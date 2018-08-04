@@ -1,4 +1,4 @@
 package io.anymind.app.web.dto
 
-case class Result(result: Double)
-case class Infinity(val result: String = "Infinity")
+case class Result(result: Int)
+case class Infinity(result: String = "Infinity")

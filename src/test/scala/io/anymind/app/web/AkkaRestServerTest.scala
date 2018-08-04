@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model.ContentTypes._
 import akka.http.scaladsl.model.HttpEntity
 import akka.http.scaladsl.model.StatusCodes.{BadRequest, OK}
-import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.server.{ExceptionHandler, RejectionHandler, Route}
 import akka.http.scaladsl.server.Route.seal
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import de.heikoseeberger.akkahttpcirce.ErrorAccumulatingCirceSupport
@@ -30,14 +30,13 @@ class AkkaRestServerTest extends TestAppSpec
     new ParallelCalculator(new MathExpressionParser())
   )
   val routes: Route = server.routes
-  implicit val exceptionHandler = server.exceptionHandler
-  implicit val rejectionHandler = server.rejectionHandler
+  implicit val exceptionHandler: ExceptionHandler = server.exceptionHandler
+  implicit val rejectionHandler: RejectionHandler = server.rejectionHandler
 
   Await.result(server.stop(), 1.seconds)
 
   feature("Evaluate expression") {
     scenario("Endpoint /evaulate is called with correct json") {
-
       Given("an instance of CalculateCommand json")
       val json: Json = Json.obj("expression" -> Json.fromString("5+10/5"))
 
@@ -75,7 +74,6 @@ class AkkaRestServerTest extends TestAppSpec
     }
 
     scenario("Endpoint /evaulate is called with incorrect expression") {
-
       Given("an instance of CalculateCommand json")
       val json: Json = Json.obj("expression" -> Json.fromString("abc"))
 

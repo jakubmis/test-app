@@ -5,7 +5,7 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model.ContentTypes.`application/json`
 import akka.http.scaladsl.model.HttpEntity
 import akka.http.scaladsl.model.StatusCodes.InternalServerError
-import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.server.{ExceptionHandler, RejectionHandler, Route}
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import de.heikoseeberger.akkahttpcirce.ErrorAccumulatingCirceSupport
 import io.anymind.app.calculator.ParallelCalculator
@@ -31,14 +31,13 @@ class AkkaRestServerErrorTest extends TestAppSpec
     calculator
   )
   val routes: Route = server.routes
-  implicit val exceptionHandler = server.exceptionHandler
-  implicit val rejectionHandler = server.rejectionHandler
+  implicit val exceptionHandler: ExceptionHandler = server.exceptionHandler
+  implicit val rejectionHandler: RejectionHandler = server.rejectionHandler
 
   Await.result(server.stop(), 1.seconds)
 
   feature("Rest server error handling") {
     scenario("Endpoint /evaulate is called and calculator fails") {
-
       Given("an instance of CalculateCommand json")
       val json: Json = Json.obj("expression" -> Json.fromString("5+10/5"))
 
@@ -55,7 +54,6 @@ class AkkaRestServerErrorTest extends TestAppSpec
     }
 
     scenario("Endpoint /evaulate is called and runtime exception occurs") {
-
       Given("an instance of CalculateCommand json")
       val json: Json = Json.obj("expression" -> Json.fromString("5+10/5"))
 

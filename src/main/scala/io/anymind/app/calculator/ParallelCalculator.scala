@@ -22,9 +22,9 @@ class ParallelCalculator(stringParser: MathExpressionParser) (implicit val actor
 
   private def source(operation: Operation): Source[Number, NotUsed] = {
     operation match {
-      case Multiply(left, right) => reduceStatement((_ * _), left, right)
-      case Divide(left, right) => reduceStatement((_ / _), left, right)
-      case Add(left, right) => reduceStatement((_ + _), left, right)
+      case Multiply(left, right) => reduceStatement(_ * _, left, right)
+      case Divide(left, right) => reduceStatement(_ / _, left, right)
+      case Add(left, right) => reduceStatement(_ + _, left, right)
       case Subtract(left, right) => reduceStatement(_ - _, left, right)
     }
   }
