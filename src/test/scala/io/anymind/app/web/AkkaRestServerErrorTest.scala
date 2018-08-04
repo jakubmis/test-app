@@ -26,7 +26,7 @@ class AkkaRestServerErrorTest extends TestAppSpec
 
   private val server: AkkaRestServer = new AkkaRestServer(
     host = RestServerHost("127.0.0.1").get,
-    port = RestServerPort(8080).get,
+    port = RestServerPort(8081).get,
     nonBlockingExecContext = NonBlockingExecContext(actorSystem.dispatcher),
     calculator
   )
